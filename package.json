@@ -9,9 +9,9 @@
     "node": ">=22.5.0"
   },
   "scripts": {
-    "start": "node --no-warnings=ExperimentalWarning server/index.js",
-    "dev": "node --no-warnings=ExperimentalWarning --watch server/index.js",
-    "import": "node --no-warnings=ExperimentalWarning scripts/import.js",
+    "start": "node --env-file-if-exists=.env --no-warnings=ExperimentalWarning server/index.js",
+    "dev": "node --env-file-if-exists=.env --no-warnings=ExperimentalWarning --watch server/index.js",
+    "import": "node --env-file-if-exists=.env --no-warnings=ExperimentalWarning scripts/import.js",
     "test": "node --no-warnings=ExperimentalWarning --test test/*.test.js"
   },
   "dependencies": {

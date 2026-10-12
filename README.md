@@ -20,7 +20,7 @@ npm run import -- "Item list.xlsx"
 npm start                       # http://localhost:3000
 ```
 
-The `.env` file is not read automatically. Either export the variables in your shell, or start with `node --env-file=.env --no-warnings=ExperimentalWarning server/index.js`.
+The `.env` file is read automatically by `npm start`, `npm run dev` and `npm run import`.
 
 Admin login uses `ADMIN_USERNAME` (default `admin`) and `ADMIN_PASSWORD`. If no password is set, admin login is disabled and the site is read-only for everyone.
 
