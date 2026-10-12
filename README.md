@@ -3,7 +3,7 @@
 A small website where showroom managers search any SKU and immediately see its **picture**, description, brand, category, stock and **retail price**. Cost prices (average cost, cost in NGN, margin) are only visible after logging in as admin. They are stripped on the server, so they never reach a visitor's browser.
 
 - Search by SKU, description, barcode or brand (partial matches work, e.g. `20989` finds `DXB-20989/1`).
-- Filter by category, brand, in stock, with photo.
+- One tab per brand: press a brand (for example DANNY) to see all of its SKUs. Also filter by category, in stock, with photo.
 - Item page with photo gallery and a shareable link, e.g. `/item/DXB-20976`.
 - Admin: import the Sage X3 item list (.xlsx or .csv), upload photos per item, or bulk upload photos named after their SKU.
 - Works on phones and tablets.

@@ -81,14 +81,29 @@
   // ---------- facets ----------
   async function loadFacets() {
     const f = await api('/api/facets');
-    const fill = (sel, list, label) => {
-      const el = $(sel); const cur = el.value;
-      el.innerHTML = `<option value="">${label}</option>` + list.map((x) => `<option value="${esc(x.name)}">${esc(x.name)} (${fmtNum(x.count)})</option>`).join('');
-      el.value = cur;
-    };
-    fill('category', f.categories, 'All categories');
-    fill('brand', f.brands, 'All brands');
+    const el = $('category'); const cur = el.value;
+    el.innerHTML = '<option value="">All categories</option>' + f.categories.map((x) => `<option value="${esc(x.name)}">${esc(x.name)} (${fmtNum(x.count)})</option>`).join('');
+    el.value = cur;
+    state.brands = f.brands;
+    renderBrandTabs();
   }
+
+  // One tab per brand. Pressing a brand shows every SKU of that brand.
+  function renderBrandTabs() {
+    const nav = $('brandTabs');
+    const total = (state.brands || []).reduce((n, b) => n + b.count, 0);
+    const tab = (value, label, count) => `<button class="brand-tab ${state.brand === value ? 'active' : ''}" type="button" role="tab" aria-selected="${state.brand === value}" data-brand="${esc(value)}">${esc(label)}<span class="brand-count">${fmtNum(count)}</span></button>`;
+    nav.innerHTML = tab('', 'All brands', total) + (state.brands || []).map((b) => tab(b.name, b.name, b.count)).join('');
+    const active = nav.querySelector('.brand-tab.active');
+    if (active) active.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+  $('brandTabs').addEventListener('click', (e) => {
+    const t = e.target.closest('.brand-tab');
+    if (!t) return;
+    state.brand = t.dataset.brand; state.page = 1;
+    renderBrandTabs(); search();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 
   // ---------- search ----------
   function searchUrl() {
@@ -106,7 +121,8 @@
     const p = new URLSearchParams(location.search);
     state.q = p.get('q') || ''; state.category = p.get('category') || ''; state.brand = p.get('brand') || '';
     state.inStock = p.get('inStock') === '1'; state.hasImage = p.get('hasImage') === '1'; state.page = Number(p.get('page')) || 1;
-    $('q').value = state.q; $('category').value = state.category; $('brand').value = state.brand; $('inStock').checked = state.inStock; $('hasImage').checked = state.hasImage;
+    $('q').value = state.q; $('category').value = state.category; $('inStock').checked = state.inStock; $('hasImage').checked = state.hasImage;
+    if (state.brands) renderBrandTabs();
     $('clearBtn').hidden = !state.q;
     const m = location.pathname.match(/^\/item\/(.+)$/);
     state.currentSku = m ? decodeURIComponent(m[1]) : null;
@@ -143,7 +159,8 @@
   function renderGrid(data) {
     const grid = $('grid');
     $('empty').hidden = data.total !== 0;
-    $('resultCount').textContent = data.total ? `${fmtNum(data.total)} item${data.total === 1 ? '' : 's'}${state.q ? ` for “${state.q}”` : ''}` : '';
+    const scope = [state.brand ? `in ${state.brand}` : '', state.q ? `for “${state.q}”` : ''].filter(Boolean).join(' ');
+    $('resultCount').textContent = data.total ? `${fmtNum(data.total)} item${data.total === 1 ? '' : 's'}${scope ? ` ${scope}` : ''}` : '';
     grid.innerHTML = data.items.map((it) => `
       <button class="card" type="button" data-sku="${esc(it.sku)}">
         <div class="card-image">${it.image ? `<img src="${imageUrl(it.image)}" alt="" loading="lazy">` : `<div class="no-image">${NO_IMAGE_SVG}<span>No photo</span></div>`}</div>
@@ -172,15 +189,15 @@
   $('q').addEventListener('input', onQuery);
   $('searchForm').addEventListener('submit', (e) => { e.preventDefault(); state.q = $('q').value.trim(); state.page = 1; search(); $('q').blur(); });
   $('clearBtn').addEventListener('click', () => { $('q').value = ''; state.q = ''; state.page = 1; $('clearBtn').hidden = true; search(); $('q').focus(); });
-  for (const id of ['category', 'brand', 'inStock', 'hasImage']) {
+  for (const id of ['category', 'inStock', 'hasImage']) {
     $(id).addEventListener('change', () => {
-      state.category = $('category').value; state.brand = $('brand').value; state.inStock = $('inStock').checked; state.hasImage = $('hasImage').checked; state.page = 1; search();
+      state.category = $('category').value; state.inStock = $('inStock').checked; state.hasImage = $('hasImage').checked; state.page = 1; search();
     });
   }
   $('brandLink').addEventListener('click', (e) => {
     e.preventDefault(); $('q').value = ''; Object.assign(state, { q: '', category: '', brand: '', inStock: false, hasImage: false, page: 1, currentSku: null });
-    $('category').value = ''; $('brand').value = ''; $('inStock').checked = false; $('hasImage').checked = false; $('clearBtn').hidden = true;
-    closeModal('itemModal'); search();
+    $('category').value = ''; $('inStock').checked = false; $('hasImage').checked = false; $('clearBtn').hidden = true;
+    renderBrandTabs(); closeModal('itemModal'); search();
   });
 
   // ---------- item detail ----------
@@ -352,7 +369,7 @@
   (async () => {
     readStateFromUrl();
     try { await Promise.all([loadConfig(), loadFacets()]); } catch (err) { toast(err.message); }
-    $('category').value = state.category; $('brand').value = state.brand;
+    $('category').value = state.category;
     search({ push: false });
     if (state.currentSku) showItem(state.currentSku);
   })();

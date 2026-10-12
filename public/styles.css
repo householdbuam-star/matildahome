@@ -77,6 +77,18 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 #q:focus { border-color: var(--accent); }
 #q::-webkit-search-cancel-button { display: none; }
 .clear { position: absolute; right: 10px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--surface-2); font-size: 1.3rem; cursor: pointer; line-height: 1; }
+.brand-tabs {
+  display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity; border-bottom: 1px solid var(--border);
+}
+@media (min-width: 900px) { .brand-tabs { flex-wrap: wrap; overflow: visible; } }
+.brand-tab {
+  flex: 0 0 auto; scroll-snap-align: start; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-weight: 600; font-size: .9rem; white-space: nowrap;
+}
+.brand-tab:hover { border-color: var(--accent); }
+.brand-tab.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+.brand-count { font-size: .75rem; font-weight: 600; opacity: .7; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .filters select { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); max-width: 100%; }
 .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; user-select: none; }
