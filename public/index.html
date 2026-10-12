@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SKU Catalog</title>
+  <meta name="description" content="Search any SKU and see its picture, description, stock and retail price.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23b45309'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EM%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" id="brandLink"><span class="brand-mark">M</span><span id="siteName">SKU Catalog</span></a>
+    <div class="topbar-actions">
+      <span class="stats" id="stats" title="Items in catalog"></span>
+      <button class="btn btn-ghost" id="adminBtn" type="button" hidden>Admin</button>
+      <div class="menu" id="adminMenu" hidden>
+        <button class="menu-item" id="menuImport" type="button">Import item list…</button>
+        <button class="menu-item" id="menuBulk" type="button">Bulk upload photos…</button>
+        <button class="menu-item" id="menuLogout" type="button">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="search-panel">
+      <form class="search-form" id="searchForm" role="search" autocomplete="off">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="q" type="search" name="q" placeholder="Search SKU, description, barcode or brand…" aria-label="Search" enterkeyhint="search" autofocus>
+          <button class="clear" id="clearBtn" type="button" aria-label="Clear search" hidden>&times;</button>
+        </div>
+        <div class="filters">
+          <select id="category" aria-label="Category"><option value="">All categories</option></select>
+          <select id="brand" aria-label="Brand"><option value="">All brands</option></select>
+          <label class="chip"><input type="checkbox" id="inStock"> In stock</label>
+          <label class="chip"><input type="checkbox" id="hasImage"> With photo</label>
+        </div>
+      </form>
+      <p class="result-count" id="resultCount" aria-live="polite"></p>
+    </section>
+
+    <section class="grid" id="grid" aria-live="polite"></section>
+    <div class="empty" id="empty" hidden>
+      <p class="empty-title">No items found</p>
+      <p>Try fewer words, or check the SKU spelling.</p>
+    </div>
+    <nav class="pager" id="pager" hidden>
+      <button class="btn" id="prevBtn" type="button">&larr; Previous</button>
+      <span id="pageInfo"></span>
+      <button class="btn" id="nextBtn" type="button">Next &rarr;</button>
+    </nav>
+  </main>
+
+  <!-- Item detail -->
+  <div class="modal" id="itemModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-dialog item-dialog" role="dialog" aria-modal="true" aria-labelledby="itemTitle">
+      <button class="modal-close" type="button" data-close aria-label="Close">&times;</button>
+      <div class="item-layout">
+        <div class="item-gallery">
+          <div class="item-main-image" id="itemMainImage"></div>
+          <div class="item-thumbs" id="itemThumbs"></div>
+          <div class="admin-only" id="itemImageAdmin" hidden>
+            <label class="dropzone" id="itemDropzone">
+              <input type="file" id="itemFiles" accept="image/*" multiple hidden>
+              <strong>Add photos</strong><span>Drop images here or tap to choose</span>
+            </label>
+            <p class="upload-status" id="itemUploadStatus"></p>
+          </div>
+        </div>
+        <div class="item-info">
+          <p class="item-sku" id="itemSku"></p>
+          <h2 class="item-title" id="itemTitle"></h2>
+          <p class="item-price" id="itemPrice"></p>
+          <dl class="item-fields" id="itemFields"></dl>
+          <div class="admin-box" id="itemAdminBox" hidden>
+            <p class="admin-box-title">Admin only</p>
+            <dl class="item-fields" id="itemAdminFields"></dl>
+          </div>
+          <div class="item-actions">
+            <button class="btn btn-ghost" id="copyLink" type="button">Copy link</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login -->
+  <div class="modal" id="loginModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <form class="modal-dialog small" id="loginForm" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <button class="modal-close" type="button" data-close aria-label="Close">&times;</button>
+      <h2 id="loginTitle">Admin login</h2>
+      <p class="muted">Admins can see cost prices, import the item list and upload photos.</p>
+      <label class="field"><span>Username</span><input id="loginUser" name="username" autocomplete="username" required></label>
+      <label class="field"><span>Password</span><input id="loginPass" name="password" type="password" autocomplete="current-password" required></label>
+      <p class="form-error" id="loginError"></p>
+      <button class="btn btn-primary" type="submit">Log in</button>
+    </form>
+  </div>
+
+  <!-- Import -->
+  <div class="modal" id="importModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <form class="modal-dialog small" id="importForm" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+      <button class="modal-close" type="button" data-close aria-label="Close">&times;</button>
+      <h2 id="importTitle">Import item list</h2>
+      <p class="muted">Upload the Excel export (.xlsx or .csv). Existing SKUs are updated, new ones added. Photos are kept.</p>
+      <label class="dropzone" id="importDropzone">
+        <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.txt" hidden>
+        <strong id="importFileName">Choose file</strong><span>.xlsx, .xls or .csv</span>
+      </label>
+      <label class="chip"><input type="checkbox" id="removeMissing"> Remove SKUs that are not in this file</label>
+      <p class="form-error" id="importError"></p>
+      <p class="upload-status" id="importStatus"></p>
+      <button class="btn btn-primary" type="submit" id="importSubmit">Import</button>
+    </form>
+  </div>
+
+  <!-- Bulk photo upload -->
+  <div class="modal" id="bulkModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-dialog small" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
+      <button class="modal-close" type="button" data-close aria-label="Close">&times;</button>
+      <h2 id="bulkTitle">Bulk upload photos</h2>
+      <p class="muted">Name each photo after its SKU, for example <code>DXB-20976.jpg</code>. A second angle can be <code>DXB-20976-2.jpg</code>. A slash in a SKU can be written as a dash or underscore.</p>
+      <label class="dropzone" id="bulkDropzone">
+        <input type="file" id="bulkFiles" accept="image/*" multiple hidden>
+        <strong>Drop photos here</strong><span>or tap to choose many at once</span>
+      </label>
+      <p class="upload-status" id="bulkStatus"></p>
+      <div class="bulk-report" id="bulkReport"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/app.js"></script>
+</body>
+</html>

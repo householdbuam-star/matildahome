@@ -1,0 +1,20 @@
+{
+  "name": "matildahome-sku-catalog",
+  "version": "1.0.0",
+  "description": "SKU catalog with product pictures for showroom managers. Retail prices are public; cost is admin-only.",
+  "private": true,
+  "type": "module",
+  "main": "server/index.js",
+  "engines": { "node": ">=22.5.0" },
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning server/index.js",
+    "dev": "node --no-warnings=ExperimentalWarning --watch server/index.js",
+    "import": "node --no-warnings=ExperimentalWarning scripts/import.js",
+    "test": "node --no-warnings=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "xlsx": "^0.18.5"
+  }
+}
