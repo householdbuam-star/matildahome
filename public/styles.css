@@ -89,6 +89,29 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 .brand-tab:hover { border-color: var(--accent); }
 .brand-tab.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
 .brand-count { font-size: .75rem; font-weight: 600; opacity: .7; }
+.snap-btn {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-contrast); font-weight: 700; cursor: pointer;
+}
+.snap-btn:hover { filter: brightness(1.05); }
+#q.has-snap { padding-right: 180px; }
+.has-snap ~ .clear { right: 104px; }
+.snap-dialog { width: min(100%, 980px); }
+.snap-dialog h2 { margin: 0 0 6px; }
+.snap-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 12px; }
+.snap-choice { font-size: 1.05rem; padding: 14px 18px; }
+.snap-progress { display: flex; align-items: center; gap: 14px; margin: 8px 0 14px; }
+.snap-progress img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; background: var(--surface-2); }
+.snap-progress p { margin: 0; font-weight: 600; }
+.snap-section { margin-top: 18px; }
+.snap-section h3 { margin: 0 0 4px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.snap-section .muted { margin: 0 0 10px; font-size: .9rem; }
+.snap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.snap-grid .card-image { aspect-ratio: 1 / 1; }
+.match-tag { display: inline-block; font-size: .72rem; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; margin-top: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.token-chip { display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .8rem; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); margin: 2px 4px 2px 0; }
+.snap-empty { padding: 18px; border-radius: 12px; background: var(--surface-2); margin-top: 14px; }
+.snap-empty ul { margin: 8px 0 0; padding-left: 18px; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .filters select { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); max-width: 100%; }
 .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; user-select: none; }
@@ -181,6 +204,11 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
   .brand span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48vw; }
   .btn { padding: 8px 12px; }
   #q { font-size: 1.05rem; padding: 14px 44px; }
+  #q.has-snap { padding-right: 112px; }
+  .snap-btn span { display: none; }
+  .snap-btn { padding: 8px 10px; }
+  .has-snap ~ .clear { right: 56px; }
+  .snap-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .item-title { font-size: 1.25rem; }
   .item-price { font-size: 1.35rem; }

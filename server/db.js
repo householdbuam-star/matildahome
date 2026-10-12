@@ -54,7 +54,13 @@ export function openDatabase(filePath = DB_PATH) {
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec('PRAGMA foreign_keys = ON;');
   db.exec(SCHEMA);
+  migrate(db);
   return db;
+}
+
+function migrate(db) {
+  const cols = db.prepare('PRAGMA table_info(images)').all().map((c) => c.name);
+  if (!cols.includes('embedding')) db.exec('ALTER TABLE images ADD COLUMN embedding BLOB');
 }
 
 export function getMeta(db, key) {

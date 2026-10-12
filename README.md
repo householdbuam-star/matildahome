@@ -6,6 +6,7 @@ A small website where showroom managers search any SKU and immediately see its *
 - One tab per brand: press a brand (for example DANNY) to see all of its SKUs. Also filter by category, in stock, with photo.
 - Item page with photo gallery and a shareable link, e.g. `/item/DXB-20976`.
 - Admin: import the Sage X3 item list (.xlsx or .csv), upload photos per item, or bulk upload photos named after their SKU.
+- **Snap to find**: no code on the item? Take a photo of it and the site returns the most likely SKUs by reading its barcode, any printed model number, and comparing its look with catalog photos.
 - Works on phones and tablets.
 
 ## Run it locally
@@ -53,6 +54,22 @@ Add `--remove-missing` to the command line import for the same effect.
 
 Large photos are downscaled in the browser to 1600 px before upload, so phone photos upload quickly.
 
+## Snap to find (search by photo)
+
+Press **Snap** next to the search box, take a photo (or pick one from the gallery) and the server combines three signals:
+
+| Signal | How | Works when |
+| --- | --- | --- |
+| Barcode | ZXing decodes EAN/UPC/Code128/QR codes in the photo and looks up the catalog's *Barcode code* column | the barcode is in the shot, flat and sharp |
+| Text on the item | Tesseract reads printed text; model numbers such as `BAC-201` or `DC1483` are searched against SKUs and descriptions | the label, sticker or box is readable |
+| Looks similar | MobileNet turns the photo into a fingerprint and compares it with every catalog photo | the item already has a photo in the catalog |
+
+Results are grouped under those three headings and say why each SKU matched. Everything runs on the server, no cloud service required. The MobileNet model (17 MB) is downloaded once into `MODEL_DIR` on first start (from `storage.googleapis.com`), and the Dockerfile prefetches it at build time. Set `VISUAL_SEARCH=0` to turn the feature off.
+
+The "looks similar" results only get good once showroom photos are uploaded, because it compares with those photos. The more angles per item, the better. Photos are indexed in the background right after upload.
+
+**Optional: let Claude read the item.** Phone photos of boxes and labels are messy, and Claude reads them far better than plain OCR (brand, model numbers, what the item is). Set `ANTHROPIC_API_KEY` to turn this on; the result is merged into the "text on the item" matches. It uses `claude-opus-5-5` by default (`CLAUDE_MODEL` to change) and costs roughly a cent per photo. Without the key the feature works with OCR only.
+
 ## Deploying
 
 The app is a single Node process with a SQLite database and a photos folder, both under `DATA_DIR` (default `./data`). Mount a persistent disk there in production.
@@ -81,6 +98,9 @@ docker run -d -p 3000:3000 -v catalog-data:/data \
 | `RETAIL_CURRENCY`, `COST_CURRENCY`, `COST_LOCAL_CURRENCY` | Symbols shown | `₦`, `$`, `₦` |
 | `DATA_DIR` | Database and photos | `./data` |
 | `MAX_IMAGE_MB`, `MAX_IMPORT_MB` | Upload limits | `12`, `60` |
+| `VISUAL_SEARCH` | `0` turns Snap to find off | `1` |
+| `MODEL_DIR` | Where the MobileNet files live | `DATA_DIR/models` |
+| `ANTHROPIC_API_KEY`, `CLAUDE_MODEL` | Optional Claude reading of the photo | empty, `claude-opus-5-5` |
 
 ## Project layout
 
@@ -90,6 +110,7 @@ server/catalog.js   Search, item lookup, photo-to-SKU matching
 server/importer.js  Excel/CSV parsing and upsert
 server/auth.js      Admin login, signed cookie, login throttle
 server/db.js        SQLite schema (node:sqlite, no native build step)
+server/vision/      Snap to find: barcode (zxing-wasm), OCR (tesseract.js), MobileNet embeddings (tfjs), optional Claude
 public/             Static front end (no build step)
 scripts/import.js   Command line import
 test/               node --test suites (npm test)
@@ -103,6 +124,7 @@ test/               node --test suites (npm test)
 | GET | `/api/items/:sku` | One item with its photos |
 | GET | `/api/facets` | Categories and brands with counts |
 | GET | `/api/config` | Site name, currencies, whether you are admin |
+| POST | `/api/identify` | multipart `photo`; returns barcode, text and similar-photo matches |
 | POST | `/api/login`, `/api/logout` | JSON `{username, password}` |
 | POST | `/api/admin/import` | multipart `file`, optional `removeMissing=1` |
 | POST | `/api/admin/images` | multipart `files[]`, optional `sku` |

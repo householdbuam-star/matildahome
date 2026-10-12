@@ -23,7 +23,7 @@ before(async () => {
     { sku: 'DXB-20989/1', description: 'INCENSE BURNER', category: 'Accessories', brand: 'DUBAI', retail_price: 15000, avg_cost: 6.375, avg_cost_ngn: 9562.5, margin_pct: 56.8, site: 'HHHQ' },
     { sku: 'CHAIR-1', description: 'Dining chair', category: 'Household', brand: 'CHINA', retail_price: 90000, avg_cost: 30, avg_cost_ngn: 45000, margin_pct: 100, qty_on_hand: 4 },
   ]);
-  const app = createApp(db);
+  const app = createApp(db, { vision: false });
   await new Promise((r) => { server = app.listen(0, r); });
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -113,6 +113,13 @@ test('admin login reveals cost, can upload and delete images', async () => {
 
   const out = await fetch(`${base}/api/logout`, { method: 'POST', headers: H });
   assert.equal(out.status, 200);
+});
+
+test('identify endpoint reports when photo search is off', async () => {
+  const fd = new FormData(); fd.append('photo', new File([PNG], 'p.png', { type: 'image/png' }));
+  const r = await fetch(`${base}/api/identify`, { method: 'POST', body: fd });
+  assert.equal(r.status, 503);
+  assert.equal((await json(await fetch(`${base}/api/config`))).body.snap.enabled, false);
 });
 
 test('unknown SKU is a 404 and item deep links serve the app', async () => {

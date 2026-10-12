@@ -29,6 +29,10 @@
           <svg class="search-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <input id="q" type="search" name="q" placeholder="Search SKU, description, barcode or brand…" aria-label="Search" enterkeyhint="search" autofocus>
           <button class="clear" id="clearBtn" type="button" aria-label="Clear search" hidden>&times;</button>
+          <button class="snap-btn" id="snapBtn" type="button" title="Snap to find: take a photo of the item" aria-label="Find by photo" hidden>
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+            <span>Snap</span>
+          </button>
         </div>
         <nav class="brand-tabs" id="brandTabs" aria-label="Brands"></nav>
         <div class="filters">
@@ -131,6 +135,25 @@
       </label>
       <p class="upload-status" id="bulkStatus"></p>
       <div class="bulk-report" id="bulkReport"></div>
+    </div>
+  </div>
+
+  <!-- Snap to find -->
+  <div class="modal" id="snapModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-dialog snap-dialog" role="dialog" aria-modal="true" aria-labelledby="snapTitle">
+      <button class="modal-close" type="button" data-close aria-label="Close">&times;</button>
+      <h2 id="snapTitle">Snap to find</h2>
+      <p class="muted" id="snapHint">No code on the item? Take a photo of it. The barcode, any printed model number and the look of the item are all used to find the SKU.</p>
+      <div class="snap-actions" id="snapActions">
+        <label class="btn btn-primary snap-choice"><input type="file" id="snapCamera" accept="image/*" capture="environment" hidden>📷 Take photo</label>
+        <label class="btn snap-choice"><input type="file" id="snapFile" accept="image/*" hidden>Choose from gallery</label>
+      </div>
+      <div class="snap-progress" id="snapProgress" hidden>
+        <img id="snapPreview" alt="">
+        <p id="snapStatus">Looking…</p>
+      </div>
+      <div class="snap-results" id="snapResults"></div>
     </div>
   </div>
 

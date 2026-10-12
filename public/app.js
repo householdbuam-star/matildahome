@@ -46,6 +46,9 @@
     $('siteName').textContent = c.siteName;
     $('stats').textContent = c.stats.items ? `${fmtNum(c.stats.items)} items · ${fmtNum(c.stats.withImages)} with photos` : 'No items yet';
     renderAdminControls();
+    const snapOn = Boolean(c.snap && c.snap.enabled);
+    $('snapBtn').hidden = !snapOn;
+    $('q').classList.toggle('has-snap', snapOn);
   }
   function renderAdminControls() {
     const c = state.config;
@@ -358,6 +361,81 @@
       await Promise.all([loadConfig(), loadFacets()]); search({ push: false });
     } catch (err) { $('importError').textContent = err.message; $('importStatus').textContent = ''; }
     finally { $('importSubmit').disabled = false; }
+  });
+
+  // ---------- Snap to find ----------
+  $('snapBtn').addEventListener('click', () => { resetSnap(); openModal('snapModal'); });
+  function resetSnap() {
+    $('snapActions').hidden = false; $('snapProgress').hidden = true; $('snapResults').innerHTML = '';
+    $('snapHint').hidden = false;
+  }
+  $('snapCamera').addEventListener('change', () => { if ($('snapCamera').files[0]) snapIdentify($('snapCamera').files[0]); $('snapCamera').value = ''; });
+  $('snapFile').addEventListener('change', () => { if ($('snapFile').files[0]) snapIdentify($('snapFile').files[0]); $('snapFile').value = ''; });
+
+  async function snapIdentify(file) {
+    const status = $('snapStatus');
+    $('snapHint').hidden = true; $('snapActions').hidden = true; $('snapProgress').hidden = false; $('snapResults').innerHTML = '';
+    const url = URL.createObjectURL(file); $('snapPreview').src = url;
+    status.textContent = 'Preparing photo…';
+    try {
+      // Keep enough resolution for small printed codes, but avoid uploading a 12 MP original.
+      const prepared = await downscale(file, 2000, 0.9);
+      status.textContent = 'Reading barcode, text and looks…';
+      const fd = new FormData(); fd.append('photo', prepared, prepared.name || 'photo.jpg');
+      const r = await api('/api/identify', { method: 'POST', body: fd });
+      status.textContent = 'Done';
+      renderSnapResults(r);
+    } catch (err) {
+      status.textContent = err.message;
+    } finally {
+      $('snapActions').hidden = false;
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function snapCard(it, tag) {
+    return `<button class="card" type="button" data-sku="${esc(it.sku)}">
+      <div class="card-image">${it.image ? `<img src="${imageUrl(it.image)}" alt="" loading="lazy">` : `<div class="no-image">${NO_IMAGE_SVG}<span>No photo</span></div>`}</div>
+      <div class="card-body">
+        <span class="card-sku">${esc(it.sku)}</span>
+        <span class="card-title">${esc(it.description)}</span>
+        <span class="card-meta">${esc([it.brand, it.category].filter(Boolean).join(' · '))}</span>
+        ${priceHtml(it, 'card-price')}
+        ${tag ? `<span class="match-tag" title="${esc(tag)}">${esc(tag)}</span>` : ''}
+      </div></button>`;
+  }
+
+  function renderSnapResults(r) {
+    const out = [];
+    for (const b of r.barcode) {
+      out.push(`<section class="snap-section"><h3>Barcode ${esc(b.code)}</h3>${b.items.length
+        ? `<div class="snap-grid">${b.items.map((it) => snapCard(it, 'Barcode match')).join('')}</div>`
+        : '<p class="muted">A barcode was read, but no SKU in the catalog has this barcode.</p>'}</section>`);
+    }
+    if (r.text.items.length) {
+      const read = r.text.tokens.map((t) => `<span class="token-chip">${esc(t)}</span>`).join('');
+      out.push(`<section class="snap-section"><h3>Matches the text on the item</h3><p class="muted">Read from the photo: ${read}</p>
+        <div class="snap-grid">${r.text.items.map((m) => snapCard(m.item, [...new Set(m.matched)].slice(0, 3).join(', '))).join('')}</div></section>`);
+    } else if (r.text.tokens.length) {
+      out.push(`<section class="snap-section"><h3>Text on the item</h3><p class="muted">Read: ${r.text.tokens.map((t) => `<span class="token-chip">${esc(t)}</span>`).join('')} but no SKU contains these.</p></section>`);
+    }
+    if (r.similar.length) {
+      const pct = (s) => `${Math.round(Math.max(0, Math.min(1, s)) * 100)}% similar`;
+      out.push(`<section class="snap-section"><h3>Looks similar</h3><p class="muted">Compared with ${fmtNum(r.indexedPhotos)} catalog photo${r.indexedPhotos === 1 ? '' : 's'}. More photos in the catalog means better matches.</p>
+        <div class="snap-grid">${r.similar.map((m) => snapCard(m.item, pct(m.score))).join('')}</div></section>`);
+    }
+    if (!out.length) {
+      out.push(`<div class="snap-empty"><strong>Nothing matched this photo.</strong><ul>
+        <li>Get closer to the label, sticker or box so the model number fills the frame.</li>
+        <li>Make sure the barcode is flat, sharp and well lit.</li>
+        ${r.indexedPhotos ? '' : '<li>No catalog photos have been added yet, so "looks similar" cannot work until an admin uploads photos.</li>'}
+      </ul></div>`);
+    }
+    $('snapResults').innerHTML = out.join('');
+  }
+  $('snapResults').addEventListener('click', (e) => {
+    const card = e.target.closest('.card[data-sku]');
+    if (card) showItem(card.dataset.sku);
   });
 
   // ---------- boot ----------

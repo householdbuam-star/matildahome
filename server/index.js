@@ -8,11 +8,16 @@ import { openDatabase, getMeta } from './db.js';
 import { parseWorkbook, importItems } from './importer.js';
 import { searchItems, getItem, getFacets, getStats, stripAdminFields, stripInternalFields, buildSkuLookup, matchFilenameToSku } from './catalog.js';
 import { attachAdmin, requireAdmin, checkCredentials, createToken, cookieOptions, COOKIE_NAME, adminEnabled, loginThrottle } from './auth.js';
+import { PhotoIndex, identify, warmUp, shutdownVision } from './vision/index.js';
+import { VISUAL_SEARCH } from './config.js';
 
 const IMAGE_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif' };
 
-export function createApp(db) {
+export function createApp(db, { vision = VISUAL_SEARCH } = {}) {
   const app = express();
+  const photoIndex = new PhotoIndex(db);
+  app.locals.photoIndex = photoIndex;
+  if (vision) warmUp(photoIndex);
   if (TRUST_PROXY) app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(express.json({ limit: '1mb' }));
@@ -38,6 +43,7 @@ export function createApp(db) {
       currencies: { retail: RETAIL_CURRENCY, cost: COST_CURRENCY, costLocal: COST_LOCAL_CURRENCY },
       stats: getStats(db),
       lastImport: getMeta(db, 'last_import'),
+      snap: { enabled: vision, indexedPhotos: photoIndex.size, pendingPhotos: vision ? photoIndex.pending() : 0 },
     });
   });
 
@@ -62,6 +68,19 @@ export function createApp(db) {
   });
 
   app.get('/api/facets', (_req, res) => res.json(getFacets(db)));
+
+  // Snap to find: identify an item from a photo.
+  app.post('/api/identify', uploadImage.single('photo'), async (req, res, next) => {
+    if (!vision) return res.status(503).json({ error: 'Photo search is turned off on this server.' });
+    if (!req.file || !IMAGE_TYPES[req.file.mimetype]) return res.status(400).json({ error: 'Please send a photo (jpg, png or webp).' });
+    try {
+      const result = await identify(db, photoIndex, req.file.buffer);
+      result.barcode = result.barcode.map((b) => ({ ...b, items: b.items.map((it) => present(req, it)) }));
+      result.text.items = result.text.items.map((m) => ({ ...m, item: present(req, m.item) }));
+      result.similar = result.similar.map((m) => ({ ...m, item: present(req, m.item) }));
+      res.json(result);
+    } catch (e) { next(e); }
+  });
 
   // ---------- auth ----------
   app.post('/api/login', loginThrottle, (req, res) => {
@@ -116,6 +135,7 @@ export function createApp(db) {
       insert.run(sku, filename, sku);
       report.saved.push({ file: file.originalname, sku, filename });
     }
+    if (vision && report.saved.length) photoIndex.indexMissing().catch(() => {});
     res.json(report);
   });
 
@@ -124,6 +144,7 @@ export function createApp(db) {
     const row = db.prepare('SELECT filename FROM images WHERE id = ?').get(id);
     if (!row) return res.status(404).json({ error: 'Image not found.' });
     db.prepare('DELETE FROM images WHERE id = ?').run(id);
+    photoIndex.remove(id);
     fs.rm(path.join(IMAGES_DIR, row.filename), { force: true }, () => {});
     res.json({ ok: true });
   });
@@ -158,6 +179,7 @@ if (isMain) {
   fs.mkdirSync(IMAGES_DIR, { recursive: true });
   const db = openDatabase();
   const app = createApp(db);
+  for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { shutdownVision().finally(() => process.exit(0)); });
   app.listen(PORT, () => {
     console.log(`${SITE_NAME} listening on http://localhost:${PORT}  (data: ${DATA_DIR})`);
     const { items } = getStats(db);

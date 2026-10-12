@@ -21,3 +21,10 @@ export const MAX_IMPORT_MB = Number(process.env.MAX_IMPORT_MB || 60);
 
 // Fields that only an authenticated admin may see.
 export const ADMIN_ONLY_FIELDS = ['avg_cost', 'avg_cost_ngn', 'margin_pct', 'po_qty', 'site'];
+
+// ---- Snap to find (visual search) ----
+export const VISUAL_SEARCH = process.env.VISUAL_SEARCH !== '0';
+export const MODEL_DIR = path.resolve(process.env.MODEL_DIR || path.join(DATA_DIR, 'models'));
+export const MOBILENET_URL = process.env.MOBILENET_URL || 'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_1.0_224';
+export const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+export const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-opus-5-5';
